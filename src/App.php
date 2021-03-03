@@ -50,7 +50,7 @@ class App
             foreach ($reposToCreate as $repoToCreate) {
                 echo PHP_EOL . 'Posting ' . $repoToCreate['title'] . ' ...';
 
-                $sluggedTitle = Str::slug($repoToCreate['title']);
+                $sluggedTitle = substr(Str::slug($repoToCreate['title']), 0, 100);
 
                 $curl = curl_init('https://api.github.com/user/repos');
                 curl_setopt_array($curl, [
