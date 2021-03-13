@@ -71,10 +71,10 @@ class App
                 $res = curl_exec($curl);
                 $jsonResponse = json_decode($res, true);
 
-
                 if (! empty($res) && ! empty($jsonResponse) && ! empty($jsonResponse['id'])) {
                     $videoToUploadRepository->insertVideoIfNeeded(
                         $jsonResponse['id'],
+                        $jsonResponse['url'],
                         $linkedChannel['g_id'],
                         $repoToCreate['id']
                     );

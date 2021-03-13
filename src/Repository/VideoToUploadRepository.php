@@ -11,6 +11,7 @@ class VideoToUploadRepository
 
     public function insertVideoIfNeeded(
         string $githubId,
+        string $url,
         int $githubAccountId,
         int $youtubeVideoId
     ): void
@@ -33,9 +34,12 @@ class VideoToUploadRepository
             $this->fetcher->exec(
                 $this->fetcher
                     ->createQuery('github_repo')
-                    ->insertInto('account_id, github_id', ':account_id, :github_id')
+                    ->insertInto(
+                        'account_id, github_id, url',
+                        ':account_id, :github_id, :url'
+                    )
                 ,
-                $postQueryParams
+                array_merge($postQueryParams, ['url' => $url])
             );
             $queriedIds = $this->fetcher->query(...$findPostIdQuery);
         }
