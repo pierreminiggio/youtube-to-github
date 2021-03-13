@@ -45,59 +45,25 @@ class App
         foreach ($linkedChannels as $linkedChannel) {
             $curlAuthHeader = ['Authorization: token ' . $linkedChannel['api_token']];
 
-            $this->deleteOldRepos($linkedChannel, $repoToDeleteRepository, $curlAuthHeader, $userAgent);
-
-            echo PHP_EOL . PHP_EOL . 'Checking account ' . $linkedChannel['g_id'] . '...';
-
-            $reposToCreate = $nonUploadedVideoRepository->findByGithubAndYoutubeChannelIds(
-                $linkedChannel['g_id'],
-                $linkedChannel['y_id']
+            $this->deleteOldRepos(
+                $linkedChannel,
+                $repoToDeleteRepository,
+                $curlAuthHeader,
+                $userAgent
             );
-            echo PHP_EOL . count($reposToCreate) . ' repos to create :' . PHP_EOL;
-
-            foreach ($reposToCreate as $repoToCreate) {
-                echo PHP_EOL . 'Posting ' . $repoToCreate['title'] . ' ...';
-
-                $sluggedTitle = substr(Str::slug($repoToCreate['title']), 0, 100);
-
-                $curl = curl_init('https://api.github.com/user/repos');
-                curl_setopt_array($curl, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_POST => 1,
-                    CURLOPT_POSTFIELDS => json_encode([
-                        'name' => $sluggedTitle,
-                        'description' => 'Nouvelle video ' . $repoToCreate['url'],
-                        'auto_init' => false,
-                        'private' => false
-                    ]),
-                    CURLOPT_HTTPHEADER => $curlAuthHeader,
-                    CURLOPT_USERAGENT => $userAgent
-                ]);
-
-                $res = curl_exec($curl);
-                $jsonResponse = json_decode($res, true);
-                curl_close($curl);
-
-                if (! empty($res) && ! empty($jsonResponse) && ! empty($jsonResponse['id'])) {
-                    $repoToCreateRepository->insertRepoIfNeeded(
-                        $jsonResponse['id'],
-                        $jsonResponse['url'],
-                        $linkedChannel['g_id'],
-                        $repoToCreate['id']
-                    );
-                    echo PHP_EOL . $repoToCreate['title'] . ' posted !';
-                } else {
-                    echo PHP_EOL . 'Error while creating ' . $repoToCreate['title'] . ' : ' . $res;
-                }
-            }
-
-            echo PHP_EOL . PHP_EOL . 'Done for account ' . $linkedChannel['g_id'] . ' !';
+            $this->createNewRepos(
+                $linkedChannel,
+                $nonUploadedVideoRepository,
+                $curlAuthHeader,
+                $userAgent,
+                $repoToCreateRepository
+            );
         }
 
         return $code;
     }
 
-    private function deleteOldRepos(
+    protected function deleteOldRepos(
         array $linkedChannel,
         RepoToDeleteRepository $repoToDeleteRepository,
         array $curlAuthHeader,
@@ -126,5 +92,60 @@ class App
         }
 
         echo PHP_EOL . PHP_EOL . 'Done deleting for account ' . $linkedChannel['g_id'] . ' !';
+    }
+
+    protected function createNewRepos(
+        array $linkedChannel,
+        NonUploadedVideoRepository $nonUploadedVideoRepository,
+        array $curlAuthHeader,
+        string $userAgent,
+        RepoToCreateRepository $repoToCreateRepository
+    ): void
+    {
+        echo PHP_EOL . PHP_EOL . 'Checking account ' . $linkedChannel['g_id'] . '...';
+
+        $reposToCreate = $nonUploadedVideoRepository->findByGithubAndYoutubeChannelIds(
+            $linkedChannel['g_id'],
+            $linkedChannel['y_id']
+        );
+        echo PHP_EOL . count($reposToCreate) . ' repos to create :' . PHP_EOL;
+
+        foreach ($reposToCreate as $repoToCreate) {
+            echo PHP_EOL . 'Posting ' . $repoToCreate['title'] . ' ...';
+
+            $sluggedTitle = substr(Str::slug($repoToCreate['title']), 0, 100);
+
+            $curl = curl_init('https://api.github.com/user/repos');
+            curl_setopt_array($curl, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => 1,
+                CURLOPT_POSTFIELDS => json_encode([
+                    'name' => $sluggedTitle,
+                    'description' => 'Nouvelle video ' . $repoToCreate['url'],
+                    'auto_init' => false,
+                    'private' => false
+                ]),
+                CURLOPT_HTTPHEADER => $curlAuthHeader,
+                CURLOPT_USERAGENT => $userAgent
+            ]);
+
+            $res = curl_exec($curl);
+            $jsonResponse = json_decode($res, true);
+            curl_close($curl);
+
+            if (! empty($res) && ! empty($jsonResponse) && ! empty($jsonResponse['id'])) {
+                $repoToCreateRepository->insertRepoIfNeeded(
+                    $jsonResponse['id'],
+                    $jsonResponse['url'],
+                    $linkedChannel['g_id'],
+                    $repoToCreate['id']
+                );
+                echo PHP_EOL . $repoToCreate['title'] . ' posted !';
+            } else {
+                echo PHP_EOL . 'Error while creating ' . $repoToCreate['title'] . ' : ' . $res;
+            }
+        }
+
+        echo PHP_EOL . PHP_EOL . 'Done for account ' . $linkedChannel['g_id'] . ' !';
     }
 }
