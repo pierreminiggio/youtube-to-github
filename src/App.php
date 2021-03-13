@@ -45,28 +45,7 @@ class App
         foreach ($linkedChannels as $linkedChannel) {
             $curlAuthHeader = ['Authorization: token ' . $linkedChannel['api_token']];
 
-            echo PHP_EOL . PHP_EOL . 'Deleting from account ' . $linkedChannel['g_id'] . '...';
-
-            $reposToDelete = $repoToDeleteRepository->findByDeletable();
-
-            echo PHP_EOL . count($reposToDelete) . ' repos to delete :' . PHP_EOL;
-
-            foreach ($reposToDelete as $repoToDelete) {
-                echo PHP_EOL . 'Deleting ' . $repoToDelete['url'] . ' ...';
-                $curl = curl_init($repoToDelete['url']);
-                curl_setopt_array($curl, [
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_CUSTOMREQUEST => 'DELETE',
-                    CURLOPT_HTTPHEADER => $curlAuthHeader,
-                    CURLOPT_USERAGENT => $userAgent
-                ]);
-                curl_exec($curl);
-                curl_close($curl);
-                $repoToDeleteRepository->delete($repoToDelete['id']);
-                echo PHP_EOL . $repoToDelete['url'] . ' deleted !';
-            }
-
-            echo PHP_EOL . PHP_EOL . 'Done deleting for account ' . $linkedChannel['g_id'] . ' !';
+            $this->deleteOldRepos($linkedChannel, $repoToDeleteRepository, $curlAuthHeader, $userAgent);
 
             echo PHP_EOL . PHP_EOL . 'Checking account ' . $linkedChannel['g_id'] . '...';
 
@@ -116,5 +95,36 @@ class App
         }
 
         return $code;
+    }
+
+    private function deleteOldRepos(
+        array $linkedChannel,
+        RepoToDeleteRepository $repoToDeleteRepository,
+        array $curlAuthHeader,
+        string $userAgent
+    ): void
+    {
+        echo PHP_EOL . PHP_EOL . 'Deleting from account ' . $linkedChannel['g_id'] . '...';
+
+        $reposToDelete = $repoToDeleteRepository->findByDeletable();
+
+        echo PHP_EOL . count($reposToDelete) . ' repos to delete :' . PHP_EOL;
+
+        foreach ($reposToDelete as $repoToDelete) {
+            echo PHP_EOL . 'Deleting ' . $repoToDelete['url'] . ' ...';
+            $curl = curl_init($repoToDelete['url']);
+            curl_setopt_array($curl, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CUSTOMREQUEST => 'DELETE',
+                CURLOPT_HTTPHEADER => $curlAuthHeader,
+                CURLOPT_USERAGENT => $userAgent
+            ]);
+            curl_exec($curl);
+            curl_close($curl);
+            $repoToDeleteRepository->delete($repoToDelete['id']);
+            echo PHP_EOL . $repoToDelete['url'] . ' deleted !';
+        }
+
+        echo PHP_EOL . PHP_EOL . 'Done deleting for account ' . $linkedChannel['g_id'] . ' !';
     }
 }
