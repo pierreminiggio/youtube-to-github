@@ -8,6 +8,7 @@ use PierreMiniggio\YoutubeToGithub\Connection\DatabaseConnectionFactory;
 use PierreMiniggio\YoutubeToGithub\Repository\LinkedChannelRepository;
 use PierreMiniggio\YoutubeToGithub\Repository\NonUploadedVideoRepository;
 use PierreMiniggio\YoutubeToGithub\Repository\RepoToCreateRepository;
+use PierreMiniggio\YoutubeToGithub\Repository\RepoToDeleteRepository;
 
 class App
 {
@@ -29,6 +30,7 @@ class App
         $channelRepository = new LinkedChannelRepository($databaseFetcher);
         $nonUploadedVideoRepository = new NonUploadedVideoRepository($databaseFetcher);
         $repoToCreateRepository = new RepoToCreateRepository($databaseFetcher);
+        $repoToDeleteRepository = new RepoToDeleteRepository($databaseFetcher);
 
         $linkedChannels = $channelRepository->findAll();
 
@@ -38,7 +40,34 @@ class App
             return $code;
         }
 
+        $userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36 OPR/74.0.3911.160';
+
         foreach ($linkedChannels as $linkedChannel) {
+            $curlAuthHeader = ['Authorization: token ' . $linkedChannel['api_token']];
+
+            echo PHP_EOL . PHP_EOL . 'Deleting from account ' . $linkedChannel['g_id'] . '...';
+
+            $reposToDelete = $repoToDeleteRepository->findByDeletable();
+
+            echo PHP_EOL . count($reposToDelete) . ' repos to delete :' . PHP_EOL;
+
+            foreach ($reposToDelete as $repoToDelete) {
+                echo PHP_EOL . 'Deleting ' . $repoToDelete['url'] . ' ...';
+                $curl = curl_init($repoToDelete['url']);
+                curl_setopt_array($curl, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_CUSTOMREQUEST => 'DELETE',
+                    CURLOPT_HTTPHEADER => $curlAuthHeader,
+                    CURLOPT_USERAGENT => $userAgent
+                ]);
+                curl_exec($curl);
+                curl_close($curl);
+                $repoToDeleteRepository->delete($repoToDelete['id']);
+                echo PHP_EOL . $repoToDelete['url'] . ' deleted !';
+            }
+
+            echo PHP_EOL . PHP_EOL . 'Done deleting for account ' . $linkedChannel['g_id'] . ' !';
+
             echo PHP_EOL . PHP_EOL . 'Checking account ' . $linkedChannel['g_id'] . '...';
 
             $reposToCreate = $nonUploadedVideoRepository->findByGithubAndYoutubeChannelIds(
@@ -62,14 +91,13 @@ class App
                         'auto_init' => false,
                         'private' => false
                     ]),
-                    CURLOPT_HTTPHEADER => [
-                        'Authorization: token ' . $linkedChannel['api_token']
-                    ],
-                    CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36 OPR/74.0.3911.160'
+                    CURLOPT_HTTPHEADER => $curlAuthHeader,
+                    CURLOPT_USERAGENT => $userAgent
                 ]);
 
                 $res = curl_exec($curl);
                 $jsonResponse = json_decode($res, true);
+                curl_close($curl);
 
                 if (! empty($res) && ! empty($jsonResponse) && ! empty($jsonResponse['id'])) {
                     $repoToCreateRepository->insertRepoIfNeeded(
