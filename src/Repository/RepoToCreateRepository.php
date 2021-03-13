@@ -4,12 +4,12 @@ namespace PierreMiniggio\YoutubeToGithub\Repository;
 
 use PierreMiniggio\DatabaseFetcher\DatabaseFetcher;
 
-class VideoToUploadRepository
+class RepoToCreateRepository
 {
     public function __construct(private DatabaseFetcher $fetcher)
     {}
 
-    public function insertVideoIfNeeded(
+    public function insertRepoIfNeeded(
         string $githubId,
         string $url,
         int $githubAccountId,

@@ -7,7 +7,7 @@ use PierreMiniggio\DatabaseFetcher\DatabaseFetcher;
 use PierreMiniggio\YoutubeToGithub\Connection\DatabaseConnectionFactory;
 use PierreMiniggio\YoutubeToGithub\Repository\LinkedChannelRepository;
 use PierreMiniggio\YoutubeToGithub\Repository\NonUploadedVideoRepository;
-use PierreMiniggio\YoutubeToGithub\Repository\VideoToUploadRepository;
+use PierreMiniggio\YoutubeToGithub\Repository\RepoToCreateRepository;
 
 class App
 {
@@ -28,7 +28,7 @@ class App
         $databaseFetcher = new DatabaseFetcher((new DatabaseConnectionFactory())->makeFromConfig($config['db']));
         $channelRepository = new LinkedChannelRepository($databaseFetcher);
         $nonUploadedVideoRepository = new NonUploadedVideoRepository($databaseFetcher);
-        $videoToUploadRepository = new VideoToUploadRepository($databaseFetcher);
+        $repoToCreateRepository = new RepoToCreateRepository($databaseFetcher);
 
         $linkedChannels = $channelRepository->findAll();
 
@@ -72,7 +72,7 @@ class App
                 $jsonResponse = json_decode($res, true);
 
                 if (! empty($res) && ! empty($jsonResponse) && ! empty($jsonResponse['id'])) {
-                    $videoToUploadRepository->insertVideoIfNeeded(
+                    $repoToCreateRepository->insertRepoIfNeeded(
                         $jsonResponse['id'],
                         $jsonResponse['url'],
                         $linkedChannel['g_id'],
