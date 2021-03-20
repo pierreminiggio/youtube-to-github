@@ -60,7 +60,7 @@ CREATE TABLE `github_repo` (
   `url` text CHARACTER SET utf8mb4 NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `created_at` datetime NULL,
+  `deleted_at` datetime NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 
 -- --------------------------------------------------------
